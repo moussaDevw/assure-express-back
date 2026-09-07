@@ -1,0 +1,128 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  phone     String    @unique
+  firstName String?
+  lastName  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  vehicles  Vehicle[]
+  contracts Contract[]
+
+  typePersonneCode String?
+  typePersonne     PersonType? @relation(fields: [typePersonneCode], references: [code], onDelete: SetNull)
+}
+
+model Vehicle {
+  id                  String   @id @default(uuid())
+  marque              String
+  modele              String
+  immatriculation     String?  @unique
+  chassis             String?  @unique
+  puissanceFiscale    Int
+  nombrePlace         Int      @default(5)
+  dateMiseCirculation DateTime
+  valeurNeuve         Decimal?
+  valeurActuelle      Decimal?
+  year                Int?
+  cylindre            Int?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  categoryCode String?
+  category     VehicleCategory? @relation(fields: [categoryCode], references: [code], onDelete: SetNull)
+  genreCode    String?
+  genre        VehicleGenre?    @relation(fields: [genreCode], references: [code], onDelete: SetNull)
+
+  fuelCode  String?
+  fuel      VehicleFuel?  @relation(fields: [fuelCode], references: [code], onDelete: SetNull)
+  usageCode String?
+  usage     VehicleUsage? @relation(fields: [usageCode], references: [code], onDelete: SetNull)
+  contracts Contract[]
+}
+
+model VehicleCategory {
+  code     String         @id
+  genres   VehicleGenre[]
+  vehicles Vehicle[]
+}
+
+model VehicleGenre {
+  code         String          @id
+  description  String
+  categoryCode String
+  category     VehicleCategory @relation(fields: [categoryCode], references: [code], onDelete: Cascade)
+  vehicles     Vehicle[]
+}
+
+model VehicleFuel {
+  code     String    @id // "ESSENCE", "DIESEL"
+  vehicles Vehicle[]
+}
+
+model PersonType {
+  code  String @id // "PHYSIQUE", "MORALE"
+  users User[]
+}
+
+model VehicleUsage {
+  code     String    @id // "commerciale", "non_commerciale"
+  vehicles Vehicle[]
+}
+
+model Otp {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model InsuranceCompany {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique // e.g. "KIIRAY"
+  baseUrl   String
+  logoUrl   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  contracts Contract[]
+}
+
+model Contract {
+  id                  String   @id @default(uuid())
+  policeNumber        String?  // The policy number (user optional)
+  attestationNumber   String?  // Numéro de l'attestation returned by Odoo
+  linkAttestation     String?  // URL to the digital certificate PDF/QR Code
+  linkCarteBrune      String?  // URL to the digital brown card PDF
+  dateExpiration      DateTime? // Date d'expiration calculée
+  referenceTrxPartner String   @unique // Internal unique transaction reference
+  responsabiliteCivile Decimal
+  dateEffet           DateTime
+  duree               Int      // In months
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId           String
+  vehicle             Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  companyId           String
+  company             InsuranceCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Odoo response details saved
+  operationStatus     String?
+  operationMessage    String?
+  odooData            Json?    // Stores raw Odoo response body
+}
